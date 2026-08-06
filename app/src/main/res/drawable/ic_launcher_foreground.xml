@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Chat-box mark kept inside the adaptive-icon safe zone. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M76,29H32C26.48,29 22,33.48 22,39v25c0,5.52 4.48,10 10,10h7v11l14.67,-11H76c5.52,0 10,-4.48 10,-10V39c0,-5.52 -4.48,-10 -10,-10z" />
+    <path
+        android:fillColor="#FF6750A4"
+        android:pathData="M39,56m-4,0a4,4 0,1 0,8 0a4,4 0,1 0,-8 0M54,56m-4,0a4,4 0,1 0,8 0a4,4 0,1 0,-8 0M69,56m-4,0a4,4 0,1 0,8 0a4,4 0,1 0,-8 0" />
+</vector>

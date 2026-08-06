@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sim_badge_unknown">#FF757575</color>
+    <color name="unread_badge_background">#FF6750A4</color>
+    <color name="unread_badge_text">#FFFFFFFF</color>
+</resources>

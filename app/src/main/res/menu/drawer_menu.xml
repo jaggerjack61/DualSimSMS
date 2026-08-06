@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navInbox"
+        android:checked="true"
+        android:icon="@drawable/ic_inbox"
+        android:title="@string/nav_inbox" />
+    <item
+        android:id="@+id/navSent"
+        android:icon="@drawable/ic_send"
+        android:title="@string/nav_sent" />
+    <item
+        android:id="@+id/navDrafts"
+        android:icon="@drawable/ic_drafts"
+        android:title="@string/nav_drafts" />
+    <item
+        android:id="@+id/navSettings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/nav_settings" />
+</menu>

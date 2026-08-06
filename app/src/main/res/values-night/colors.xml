@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- High-contrast amber replaces the low-contrast primary badge in dark mode. -->
+    <color name="unread_badge_background">#FFFFD54F</color>
+    <color name="unread_badge_text">#FF211B00</color>
+</resources>

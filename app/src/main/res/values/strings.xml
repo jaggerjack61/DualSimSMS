@@ -1,0 +1,96 @@
+<resources>
+    <string name="app_name">DualSimSms</string>
+
+    <!-- Drawer -->
+    <string name="nav_inbox">Inbox</string>
+    <string name="nav_sent">Sent</string>
+    <string name="nav_drafts">Drafts</string>
+    <string name="nav_settings">Settings</string>
+    <string name="open_drawer">Open navigation drawer</string>
+    <string name="close_drawer">Close navigation drawer</string>
+
+    <!-- Tabs -->
+    <string name="tab_all_sims">All SIMs</string>
+
+    <!-- Folder states -->
+    <string name="empty_inbox">No conversations in the inbox</string>
+    <string name="empty_sent">No sent messages</string>
+    <string name="empty_drafts">No drafts. Start typing a message to save it here automatically.</string>
+    <string name="empty_sim_filter">No messages on this SIM</string>
+    <string name="unread_count">%1$d unread</string>
+    <string name="contact_suggestion_format">%1$s · %2$s</string>
+    <string name="error_permissions_title">SMS permissions required</string>
+    <string name="error_permissions_body">DualSimSms needs SMS, phone state and contact permissions to show your messages.</string>
+    <string name="error_permissions_action">Grant permissions</string>
+
+    <!-- Role -->
+    <string name="role_dialog_title">Become the default SMS app?</string>
+    <string name="role_dialog_message">Sending and auto-saving messages requires the default SMS role.\n\nNote: MMS (picture and group messages) is not supported in this version. If you switch your default SMS app later, existing messages stay on your device.</string>
+    <string name="role_dialog_positive">Continue</string>
+    <string name="role_dialog_negative">Not now</string>
+
+    <!-- Compose -->
+    <string name="compose_title">New message</string>
+    <string name="recipient_hint">To</string>
+    <string name="recipient_invalid">Select a contact or enter a phone number</string>
+    <string name="message_hint">Message</string>
+    <string name="send">Send</string>
+    <string name="character_count">%1$d chars · %2$d messages</string>
+    <string name="sim_selector_label">SIM</string>
+    <string name="no_sim">No SIM card</string>
+
+    <!-- Conversation -->
+    <string name="conversation_title">Conversation</string>
+    <string name="message_status_sent">Sent</string>
+    <string name="message_status_delivered">Delivered</string>
+    <string name="message_status_failed">Couldn’t send</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_default_sms_title">Default SMS app</string>
+    <string name="settings_default_sms_not_selected">Set DualSimSms as the default to compose, receive, and save messages without extra prompts. Picture and group messages (MMS) aren’t supported.</string>
+    <string name="settings_default_sms_selected">DualSimSms is your default SMS app.</string>
+    <string name="settings_make_default">Make default</string>
+    <string name="settings_default_selected">Default app</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_notifications_enabled">Incoming message notifications are enabled.</string>
+    <string name="settings_notifications_disabled">Notifications are off.</string>
+    <string name="settings_enable_notifications">Enable notifications</string>
+    <string name="settings_notification_settings">Notification settings</string>
+    <string name="settings_empty">No active SIM cards found</string>
+    <string name="settings_loading">Loading SIM settings</string>
+    <string name="settings_name_label">Name</string>
+    <string name="settings_name_hint">Default: %1$s</string>
+    <string name="settings_color_label">Color</string>
+    <string name="settings_reset_name">Reset name</string>
+    <string name="settings_slot_info">Slot %1$d · %2$s</string>
+    <string name="settings_color_option">%1$s color</string>
+    <string name="settings_color_option_selected">%1$s color, selected</string>
+    <string-array name="settings_color_names">
+        <item>Blue</item>
+        <item>Green</item>
+        <item>Red</item>
+        <item>Purple</item>
+        <item>Orange</item>
+        <item>Teal</item>
+        <item>Pink</item>
+        <item>Indigo</item>
+    </string-array>
+    <string name="content_description_sim_badge">%1$s</string>
+
+    <!-- Send errors -->
+    <string name="error_permissions_required">SMS permissions are required to send messages</string>
+    <string name="error_not_default_handler">DualSimSms is not the default SMS app; sending is disabled</string>
+    <string name="error_no_sim_selected">Select a SIM to send from</string>
+    <string name="error_missing_sim">The selected SIM is not available</string>
+    <string name="error_no_service">No network service — the message was not sent</string>
+    <string name="error_radio_off">Radio is off — the message was not sent</string>
+    <string name="error_send_failed">The message could not be sent</string>
+    <string name="error_not_permitted">Sending is not permitted on this device</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_incoming">Incoming messages</string>
+    <string name="notification_channel_incoming_desc">Alerts for received SMS</string>
+    <string name="notification_channel_send_result">Message delivery</string>
+    <string name="notification_channel_send_result_desc">Outcome of sent messages</string>
+</resources>
