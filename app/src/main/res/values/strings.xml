@@ -9,6 +9,12 @@
     <string name="open_drawer">Open navigation drawer</string>
     <string name="close_drawer">Close navigation drawer</string>
 
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_built_by">Built by Samuel Jarai</string>
+    <string name="about_open_source">Open source</string>
+    <string name="about_link">github.com/jaggerjack61</string>
+
     <!-- Tabs -->
     <string name="tab_all_sims">All SIMs</string>
 

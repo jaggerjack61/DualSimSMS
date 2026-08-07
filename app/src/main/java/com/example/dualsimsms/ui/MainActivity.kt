@@ -1,6 +1,7 @@
 package com.example.dualsimsms.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -97,6 +98,8 @@ class MainActivity : AppCompatActivity() {
         })
 
         binding.fabCompose.setOnClickListener { handleComposeRequested() }
+
+        binding.aboutSection.setOnClickListener { openGitHub() }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -223,6 +226,15 @@ class MainActivity : AppCompatActivity() {
         if (!number.isNullOrBlank()) {
             ComposeActivity.start(this, number)
         }
+    }
+
+    private fun openGitHub() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL))
+        startActivity(intent)
+    }
+
+    private companion object {
+        const val GITHUB_URL = "https://github.com/jaggerjack61"
     }
 
     private fun applyInsets() {
