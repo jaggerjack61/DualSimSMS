@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -28,6 +29,7 @@ class MessageAdapter(
         val binding = ItemMessageBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
+        applyMaxBubbleWidth(binding, parent.width)
         return ViewHolder(binding)
     }
 
@@ -43,7 +45,15 @@ class MessageAdapter(
     inner class ViewHolder(private val binding: ItemMessageBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
+        init {
+            // Keep the cap correct across rotations/resizes without relying on rebind.
+            binding.root.doOnLayout {
+                applyMaxBubbleWidth(binding, binding.root.width)
+            }
+        }
+
         fun bind(message: Message) {
+            applyMaxBubbleWidth(binding, binding.root.width)
             binding.body.text = message.body
             binding.time.text = TimeFormatter.relative(message.date)
             renderDeliveryState(message.deliveryState)
@@ -115,7 +125,20 @@ class MessageAdapter(
         }
     }
 
+    private fun applyMaxBubbleWidth(binding: ItemMessageBinding, availableWidthPx: Int) {
+        if (availableWidthPx <= 0) return
+        // View#maxWidth is a TextView API, not a generic View one; capping the body
+        // text caps the wrap-content bubble as a whole.
+        val maxWidth = (availableWidthPx * MAX_BUBBLE_WIDTH_FRACTION).toInt()
+        if (binding.body.maxWidth != maxWidth) {
+            binding.body.maxWidth = maxWidth
+        }
+    }
+
     private companion object {
+        /** Bubbles may span at most this fraction of the available row width. */
+        private const val MAX_BUBBLE_WIDTH_FRACTION = 0.8f
+
         val DIFF = object : DiffUtil.ItemCallback<Message>() {
             override fun areItemsTheSame(oldItem: Message, newItem: Message): Boolean =
                 oldItem.id == newItem.id
