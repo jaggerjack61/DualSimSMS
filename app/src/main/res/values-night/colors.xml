@@ -1,6 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- High-contrast amber replaces the low-contrast primary badge in dark mode. -->
-    <color name="unread_badge_background">#FFFFD54F</color>
-    <color name="unread_badge_text">#FF211B00</color>
+    <color name="brand_primary">#FFB4C5FF</color>
+    <color name="brand_on_primary">#FF00297A</color>
+    <color name="brand_primary_container">#FF23428F</color>
+    <color name="brand_on_primary_container">#FFDBE1FF</color>
+    <color name="brand_secondary">#FFC1C5DD</color>
+    <color name="brand_on_secondary">#FF2B3042</color>
+    <color name="brand_secondary_container">#FF414659</color>
+    <color name="brand_on_secondary_container">#FFDDE1F9</color>
+    <color name="brand_tertiary">#FFE2BBDB</color>
+    <color name="brand_on_tertiary">#FF422740</color>
+    <color name="brand_tertiary_container">#FF5B3D57</color>
+    <color name="brand_on_tertiary_container">#FFFFD7F5</color>
+    <color name="brand_error">#FFFFB4AB</color>
+    <color name="brand_on_error">#FF690005</color>
+    <color name="brand_error_container">#FF93000A</color>
+    <color name="brand_on_error_container">#FFFFDAD6</color>
+    <color name="brand_surface">#FF121318</color>
+    <color name="brand_on_surface">#FFE3E1E9</color>
+    <color name="brand_surface_variant">#FF45464F</color>
+    <color name="brand_on_surface_variant">#FFC6C6D0</color>
+    <color name="brand_outline">#FF90909A</color>
+    <color name="brand_outline_variant">#FF45464F</color>
+    <color name="brand_surface_container_lowest">#FF0D0E13</color>
+    <color name="brand_surface_container_low">#FF1A1B21</color>
+    <color name="brand_surface_container">#FF1E1F25</color>
+    <color name="brand_surface_container_high">#FF292A2F</color>
+    <color name="brand_surface_container_highest">#FF34343A</color>
+    <color name="brand_surface_dim">#FF121318</color>
+    <color name="brand_surface_bright">#FF38393F</color>
+    <color name="brand_inverse_surface">#FFE3E1E9</color>
+    <color name="brand_inverse_on_surface">#FF2F3036</color>
+    <color name="brand_inverse_primary">#FF3D5BA9</color>
+
+    <color name="avatar_bg_1">#FF274777</color>
+    <color name="avatar_fg_1">#FFD6E3FF</color>
+    <color name="avatar_bg_2">#FF1E5130</color>
+    <color name="avatar_fg_2">#FFC4EED0</color>
+    <color name="avatar_bg_3">#FF73332D</color>
+    <color name="avatar_fg_3">#FFFFDAD6</color>
+    <color name="avatar_bg_4">#FF563D70</color>
+    <color name="avatar_fg_4">#FFF2DAFF</color>
+    <color name="avatar_bg_5">#FF653C17</color>
+    <color name="avatar_fg_5">#FFFFDCC2</color>
+    <color name="avatar_bg_6">#FF1C4E4F</color>
+    <color name="avatar_fg_6">#FFBEEBEC</color>
 </resources>

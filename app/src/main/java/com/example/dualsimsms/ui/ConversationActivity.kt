@@ -2,21 +2,34 @@ package com.example.dualsimsms.ui
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.telephony.PhoneNumberUtils
 import android.telephony.SmsManager
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.dualsimsms.R
+import com.example.dualsimsms.data.SettingsRepository
 import com.example.dualsimsms.databinding.ActivityConversationBinding
 import com.example.dualsimsms.model.SimProfile
 import com.example.dualsimsms.telephony.SmsExtras
+import com.example.dualsimsms.util.SimDefaults
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Opens a conversation thread: message bubbles with SIM badges, mark-as-read,
@@ -26,7 +39,6 @@ class ConversationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityConversationBinding
     private lateinit var messageAdapter: MessageAdapter
-    private lateinit var simAdapter: android.widget.ArrayAdapter<String>
 
     private val threadId: Long by lazy { intent.getLongExtra(SmsExtras.EXTRA_THREAD_ID, -1L) }
     private val address: String by lazy { intent.getStringExtra(SmsExtras.EXTRA_ADDRESS) ?: "" }
@@ -35,8 +47,10 @@ class ConversationActivity : AppCompatActivity() {
     }
 
     private val viewModel: ConversationViewModel by viewModels {
-        ConversationViewModel.factory(threadId, address)
+        ConversationViewModel.factory(threadId, address, initialSubId)
     }
+
+    private var simSubIds: List<Int> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,34 +59,21 @@ class ConversationActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
         applyInsets()
 
         messageAdapter = MessageAdapter(
             colorResolver = viewModel::colorFor,
-            simLabelResolver = viewModel::simLabel
+            simLabelResolver = viewModel::simLabel,
+            onCopied = ::showCopiedConfirmation
         )
         binding.recycler.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         binding.recycler.adapter = messageAdapter
+        binding.recycler.itemAnimator?.changeDuration = 0
 
-        simAdapter = android.widget.ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item
-        )
-        binding.simSpinner.adapter = simAdapter
-        binding.simSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: android.widget.AdapterView<*>?,
-                view: android.view.View?,
-                position: Int,
-                id: Long
-            ) {
-                val subId = simSubIds.getOrNull(position)
-                if (subId != null) viewModel.selectSub(subId)
-            }
-
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-        }
+        binding.simSpinner.setOnClickListener { showSimPicker() }
 
         binding.sendButton.setOnClickListener {
             viewModel.send()
@@ -92,9 +93,8 @@ class ConversationActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             viewModel.messages.collect { messages ->
-                messageAdapter.submitList(messages)
-                binding.recycler.post {
-                    if (messages.isNotEmpty()) {
+                messageAdapter.submitMessages(messages) {
+                    if (messageAdapter.itemCount > 0) {
                         binding.recycler.scrollToPosition(messageAdapter.itemCount - 1)
                     }
                 }
@@ -109,73 +109,148 @@ class ConversationActivity : AppCompatActivity() {
                 updateCounts(compose.body)
                 binding.sendButton.isEnabled = !compose.sending &&
                     compose.body.isNotBlank() && compose.selectedSubId != null
+                renderSimSelector()
             }
         }
         lifecycleScope.launch {
             viewModel.snackbar.collect { message ->
                 if (message != null) {
-                    Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+                        .setAnchorView(binding.composeBar)
+                        .show()
                     viewModel.consumeSnackbar()
                 }
             }
         }
         lifecycleScope.launch {
             viewModel.subscriptions.collect { subscriptions ->
-                renderSimSelector(subscriptions, viewModel.compose.value.selectedSubId ?: initialSubId)
+                simSubIds = subscriptions.map { it.subscriptionId }
+                // If the chosen SIM was removed, fall back to one that exists.
+                val current = viewModel.compose.value.selectedSubId
+                if (current != null && current !in simSubIds) {
+                    subscriptions.firstOrNull()?.let { viewModel.selectSub(it.subscriptionId) }
+                }
+                renderSimSelector()
                 messageAdapter.refreshSimPresentation()
             }
         }
         lifecycleScope.launch {
-            viewModel.settings.collect { settings ->
-                val labels = simLabelsFor(settings)
-                renderSimLabels(labels)
+            viewModel.settings.collect {
+                renderSimSelector()
                 messageAdapter.refreshSimPresentation()
             }
         }
 
-        binding.toolbar.title = address
+        renderHeader(name = null)
         lifecycleScope.launch {
-            val name = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val name = withContext(Dispatchers.IO) {
                 com.example.dualsimsms.SmsAppContainer.contactName(this@ConversationActivity, address)
             }
-            if (name != null) {
-                binding.toolbar.title = name
-                binding.toolbar.subtitle = address
+            if (name != null) renderHeader(name)
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        if (isDialable(address)) {
+            menu.add(Menu.NONE, MENU_CALL, Menu.NONE, R.string.action_call)
+                .setIcon(R.drawable.ic_call)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        }
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == MENU_CALL) {
+            startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", address, null)))
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun renderHeader(name: String?) {
+        val formatted = formatNumber(address)
+        binding.toolbarTitle.text = name ?: formatted
+        binding.toolbarSubtitle.text = formatted
+        binding.toolbarSubtitle.isVisible = name != null
+        Avatars.bind(binding.toolbarAvatar, name ?: address, colorKey = address)
+    }
+
+    private fun renderSimSelector() {
+        val subs = viewModel.subscriptions.value
+        val selected = viewModel.compose.value.selectedSubId
+        val label = when {
+            subs.isEmpty() -> getString(R.string.no_sim)
+            else -> labelFor(subs.firstOrNull { it.subscriptionId == selected } ?: subs.first())
+        }
+        binding.simSpinner.text = label
+        binding.simSpinner.setSimDot(viewModel.colorFor(selected))
+        binding.simSpinner.contentDescription = getString(R.string.sim_selector_description, label)
+        binding.simSpinner.isEnabled = subs.size > 1
+        // A single SIM needs no picker affordance.
+        val arrow = if (subs.size > 1) binding.simSpinner.compoundDrawablesRelative[2] else null
+        if (subs.size <= 1) {
+            val drawables = binding.simSpinner.compoundDrawablesRelative
+            binding.simSpinner.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                drawables[0], null, null, null
+            )
+        } else if (arrow == null) {
+            val drawables = binding.simSpinner.compoundDrawablesRelative
+            binding.simSpinner.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                drawables[0], null, AppCompatResources.getDrawable(this, R.drawable.ic_arrow_drop_down), null
+            )
+        }
+    }
+
+    private fun showSimPicker() {
+        val subs = viewModel.subscriptions.value
+        if (subs.size <= 1) return
+        val popup = PopupMenu(this, binding.simSpinner)
+        subs.forEachIndexed { index, sub ->
+            popup.menu.add(Menu.NONE, index, index, labelFor(sub)).apply {
+                isCheckable = true
+                isChecked = sub.subscriptionId == viewModel.compose.value.selectedSubId
             }
         }
-    }
-
-    private var simSubIds: List<Int> = emptyList()
-
-    private fun renderSimSelector(subscriptions: List<SimProfile>, selectedSubId: Int?) {
-        simSubIds = subscriptions.map { it.subscriptionId }
-        renderSimLabels(simLabelsFor(viewModel.settings.value))
-        val index = simSubIds.indexOf(selectedSubId).let {
-            if (it >= 0) it else simSubIds.indexOfFirst { subId -> subId >= 0 }
+        popup.menu.setGroupCheckable(Menu.NONE, true, true)
+        popup.setOnMenuItemClickListener { item ->
+            simSubIds.getOrNull(item.itemId)?.let(viewModel::selectSub)
+            true
         }
-        if (index >= 0) binding.simSpinner.setSelection(index, false)
+        popup.show()
     }
 
-    private fun renderSimLabels(labels: List<String>) {
-        simAdapter.clear()
-        simAdapter.addAll(labels)
-    }
-
-    private fun simLabelsFor(settings: com.example.dualsimsms.data.SettingsRepository.AppSettings): List<String> {
-        val subs = viewModel.subscriptions.value
-        if (subs.isEmpty()) return listOf(getString(R.string.no_sim))
-        return subs.map { sub ->
-            settings.sims[sub.subscriptionId]?.customName
-                ?: com.example.dualsimsms.util.SimDefaults.defaultName(sub.slotIndex)
-        }
+    private fun labelFor(sub: SimProfile): String {
+        val settings: SettingsRepository.AppSettings = viewModel.settings.value
+        return settings.sims[sub.subscriptionId]?.customName ?: SimDefaults.defaultName(sub.slotIndex)
     }
 
     private fun updateCounts(body: String) {
         val segments = runCatching {
             SmsManager.getDefault().divideMessage(body).size
         }.getOrDefault(if (body.isEmpty()) 0 else 1)
-        binding.countLabel.text = getString(R.string.character_count, body.length, segments)
+        binding.countLabel.text =
+            resources.getQuantityString(R.plurals.character_count, body.length, body.length, segments)
+        binding.countLabel.isVisible = body.isNotEmpty()
     }
+
+    private fun showCopiedConfirmation() {
+        // Android 13+ shows its own clipboard confirmation.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Snackbar.make(binding.root, R.string.message_copied, Snackbar.LENGTH_SHORT)
+                .setAnchorView(binding.composeBar)
+                .show()
+        }
+    }
+
+    private fun formatNumber(value: String): String =
+        if (isDialable(value)) {
+            PhoneNumberUtils.formatNumber(value, java.util.Locale.getDefault().country) ?: value
+        } else {
+            value
+        }
+
+    private fun isDialable(value: String): Boolean =
+        value.count(Char::isDigit) >= 3 && value.all { it.isDigit() || it in "+-() ." }
 
     private fun applyInsets() {
         // Grow the app bar by the status-bar inset so the toolbar keeps its
@@ -185,14 +260,20 @@ class ConversationActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
+        // Lift the send bar above both the navigation bar and the keyboard.
+        val baseBottom = binding.composeBar.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(binding.composeBar) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(0, 0, 0, bars.bottom)
+            val bottom = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
+            ).bottom
+            v.updatePadding(bottom = baseBottom + bottom)
             insets
         }
     }
 
     companion object {
+        private const val MENU_CALL = 1
+
         fun intent(context: Context, threadId: Long, address: String, subId: Int?): Intent =
             Intent(context, ConversationActivity::class.java).apply {
                 putExtra(SmsExtras.EXTRA_THREAD_ID, threadId)

@@ -45,7 +45,7 @@ class ConversationActivityTest {
             onView(withId(R.id.simSpinner)).check(matches(isDisplayed()))
 
             onView(withId(R.id.bodyInput)).perform(replaceText("Test draft"))
-            waitUntil(4000) { countLabel(scenario) == "11 chars · 1 messages" }
+            waitUntil(4000) { countLabel(scenario) == "10 chars · 1 SMS" }
 
             // Without the default SMS role, sending is rejected with a clear message.
             onView(withId(R.id.sendButton)).perform(click())

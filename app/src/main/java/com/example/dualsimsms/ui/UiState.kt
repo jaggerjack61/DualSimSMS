@@ -8,5 +8,7 @@ sealed interface UiState<out T> {
 
 data class TabModel(
     val subId: Int?,
-    val label: String
+    val label: String,
+    /** SIM colour for the tab's dot; null for "All SIMs". */
+    val color: Int? = null
 )

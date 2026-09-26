@@ -37,7 +37,9 @@ import kotlinx.coroutines.withContext
 class ConversationViewModel(
     application: Application,
     private val threadId: Long,
-    private val address: String
+    private val address: String,
+    /** SIM the thread was last active on; replies default to it. */
+    private val preferredSubId: Int? = null
 ) : AndroidViewModel(application) {
 
     data class ComposeState(
@@ -86,14 +88,19 @@ class ConversationViewModel(
             }
         }
         viewModelScope.launch {
+            // Read the live SIM list, not the StateFlow's empty initial value.
             val (subs, settings) = combine(
-                subscriptions,
+                simRepo.subscriptionChanges(),
                 settingsRepo.settingsFlow()
             ) { subs, settings -> subs to settings }.first()
-            val preferred = subs.firstOrNull { it.subscriptionId == settings.lastSimSubId }
+            val preferred = subs.firstOrNull { it.subscriptionId == preferredSubId }
+                ?: subs.firstOrNull { it.subscriptionId == settings.lastSimSubId }
                 ?: subs.firstOrNull()
             preferred?.let { sub ->
-                _compose.update { state -> state.copy(selectedSubId = sub.subscriptionId) }
+                // Never override a SIM the user already picked.
+                _compose.update { state ->
+                    if (state.selectedSubId == null) state.copy(selectedSubId = sub.subscriptionId) else state
+                }
             }
         }
         viewModelScope.launch { smsRepo.markThreadAsRead(threadId) }
@@ -216,8 +223,13 @@ class ConversationViewModel(
     }
 
     companion object {
-        fun factory(threadId: Long, address: String): ViewModelProvider.Factory = viewModelFactory {
-            initializer { ConversationViewModel(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application, threadId, address) }
+        fun factory(threadId: Long, address: String, preferredSubId: Int? = null): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                ConversationViewModel(
+                    this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application,
+                    threadId, address, preferredSubId
+                )
+            }
         }
     }
 }

@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -15,9 +16,52 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="@string/conversation_title"
-            app:subtitleTextAppearance="@style/TextAppearance.Material3.BodySmall" />
+            app:contentInsetStartWithNavigation="0dp"
+            app:navigationContentDescription="@string/navigate_up"
+            app:navigationIcon="@drawable/ic_arrow_back">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <include
+                    android:id="@+id/toolbarAvatar"
+                    layout="@layout/view_avatar"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/toolbarTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textColor="?attr/colorOnSurface"
+                        tools:text="Contact name" />
+
+                    <TextView
+                        android:id="@+id/toolbarSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:text="+263 77 123 4567"
+                        tools:visibility="visible" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -26,7 +70,12 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:padding="12dp"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp"
+        android:scrollbarStyle="outsideOverlay"
+        android:scrollbars="vertical"
         tools:listitem="@layout/item_message" />
 
     <LinearLayout
@@ -34,9 +83,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingStart="12dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="12dp"
+        android:paddingStart="8dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="8dp"
         android:paddingBottom="8dp">
 
         <TextView
@@ -44,43 +93,87 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
+            android:layout_marginEnd="8dp"
             android:layout_marginBottom="4dp"
-            android:textAppearance="?attr/textAppearanceLabelSmall" />
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="10 chars · 1 SMS"
+            tools:visibility="visible" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
+            android:gravity="bottom"
             android:orientation="horizontal">
 
-            <Spinner
-                android:id="@+id/simSpinner"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription="@string/sim_selector_label" />
-
-            <EditText
-                android:id="@+id/bodyInput"
+            <LinearLayout
+                android:id="@+id/inputContainer"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:background="@null"
-                android:hint="@string/message_hint"
-                android:importantForAutofill="no"
-                android:inputType="textCapSentences|textMultiLine"
-                android:maxLines="5"
-                android:minLines="1" />
+                android:background="@drawable/bg_input_pill"
+                android:gravity="center_vertical"
+                android:minHeight="52dp"
+                android:orientation="horizontal"
+                android:paddingStart="6dp"
+                android:paddingEnd="16dp">
 
-            <ImageButton
+                <TextView
+                    android:id="@+id/simSpinner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_gravity="bottom"
+                    android:layout_marginBottom="6dp"
+                    android:background="@drawable/bg_sim_selector"
+                    android:clickable="true"
+                    android:drawablePadding="6dp"
+                    android:ellipsize="end"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:maxWidth="112dp"
+                    android:maxLines="1"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="4dp"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
+                    android:textColor="?attr/colorOnSecondaryContainer"
+                    app:drawableEndCompat="@drawable/ic_arrow_drop_down"
+                    app:drawableStartCompat="@drawable/dot"
+                    tools:text="SIM 1" />
+
+                <EditText
+                    android:id="@+id/bodyInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="@string/message_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textCapSentences|textMultiLine|textAutoCorrect"
+                    android:maxLines="6"
+                    android:minHeight="52dp"
+                    android:minLines="1"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorHint="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/sendButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.Material3.Button.IconButton.Filled"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="6dp"
                 android:contentDescription="@string/send"
-                android:src="@drawable/ic_send"
-                app:tint="?attr/colorPrimary" />
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_send"
+                app:iconSize="22dp" />
         </LinearLayout>
     </LinearLayout>
 

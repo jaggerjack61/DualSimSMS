@@ -99,7 +99,8 @@ class MainActivity : AppCompatActivity() {
 
         binding.fabCompose.setOnClickListener { handleComposeRequested() }
 
-        binding.aboutSection.setOnClickListener { openGitHub() }
+        binding.aboutLinkRow.setOnClickListener { openGitHub() }
+        binding.aboutVersion.text = getString(R.string.about_version, appVersionName())
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -120,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                 val selected = mainViewModel.selectedTabIndex.value
                 binding.tabs.removeAllTabs()
                 tabs.forEachIndexed { index, tab ->
-                    binding.tabs.addTab(binding.tabs.newTab().setText(tab.label), index == selected)
+                    binding.tabs.addTab(newSimTab(tab), index == selected)
                 }
                 (binding.pager.adapter as? SimPagerAdapter)?.updateTabs(tabs)
                 if (binding.pager.currentItem != selected) {
@@ -145,6 +146,14 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         mainViewModel.refreshCapabilities()
         SmsNotificationHelper.ensureChannels(this)
+    }
+
+    /** Shrinks the compose button while reading down a list; restores it near the top or on scroll up. */
+    fun onConversationListScrolled(dy: Int, canScrollUp: Boolean) {
+        when {
+            !canScrollUp || dy < 0 -> binding.fabCompose.extend()
+            dy > 0 -> binding.fabCompose.shrink()
+        }
     }
 
     fun requestSmsPermissions() {
@@ -189,6 +198,7 @@ class MainActivity : AppCompatActivity() {
         // The compose button is always visible; tapping it walks through
         // permission and default-SMS-role prompts when sending isn't ready.
         binding.fabCompose.isVisible = true
+        binding.fabCompose.extend()
         binding.navView.setCheckedItem(folderMenuId(mainViewModel.selectedFolder.value))
         binding.toolbar.title = folderTitle(mainViewModel.selectedFolder.value)
     }
@@ -230,7 +240,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun openGitHub() {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL))
-        startActivity(intent)
+        runCatching { startActivity(intent) }
+    }
+
+    private fun appVersionName(): String =
+        runCatching { packageManager.getPackageInfo(packageName, 0).versionName }
+            .getOrNull() ?: "?"
+
+    /** A tab label with the SIM's colour dot; "All SIMs" has no dot. */
+    private fun newSimTab(model: TabModel): TabLayout.Tab {
+        val view = layoutInflater.inflate(R.layout.tab_sim, binding.tabs, false)
+        val label = view.findViewById<android.widget.TextView>(android.R.id.text1)
+        label.setTextColor(binding.tabs.tabTextColors)
+        model.color?.let(label::setSimDot)
+        return binding.tabs.newTab().setCustomView(view).setText(model.label)
     }
 
     private companion object {
@@ -245,9 +268,22 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
-        // The NavigationView (a Material ScrimInsetsFrameLayout) applies the
-        // status-bar and navigation-bar insets itself when it has
-        // fitsSystemWindows="true".
+        // The NavigationView (a Material ScrimInsetsFrameLayout) pads its
+        // header and menu for the system bars itself, but consumes the insets
+        // before they reach the About footer, so pad that from the root.
+        val footerBottom = binding.aboutSection.paddingBottom
+        val header = binding.navView.getHeaderView(0)
+        val headerTop = header.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(binding.coordinator) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // With a header, NavigationView leaves the status-bar inset to it.
+            header.setPadding(header.paddingLeft, headerTop + systemBars.top, header.paddingRight, header.paddingBottom)
+            binding.aboutSection.setPadding(
+                binding.aboutSection.paddingLeft, binding.aboutSection.paddingTop,
+                binding.aboutSection.paddingRight, footerBottom + systemBars.bottom
+            )
+            insets
+        }
         ViewCompat.setOnApplyWindowInsetsListener(binding.fabCompose) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val params = v.layoutParams as android.view.ViewGroup.MarginLayoutParams

@@ -46,14 +46,14 @@ class ComposeActivityTest {
             onView(withId(R.id.recipientInput)).check(matches(withText("+15551234567")))
 
             onView(withId(R.id.bodyInput)).perform(replaceText("Hello SIM"))
-            waitUntil(4000) { countLabel(scenario) == "12 chars · 1 messages" }
-            assertEquals("12 chars · 1 messages", countLabel(scenario))
+            waitUntil(4000) { countLabel(scenario) == "9 chars · 1 SMS" }
+            assertEquals("9 chars · 1 SMS", countLabel(scenario))
 
             // A long body is split into multiple SMS segments.
             onView(withId(R.id.bodyInput)).perform(
                 replaceText("A".repeat(200))
             )
-            waitUntil(4000) { countLabel(scenario) == "200 chars · 2 messages" }
+            waitUntil(4000) { countLabel(scenario) == "200 chars · 2 SMS" }
 
             // Sending without the default SMS role must show a clear error.
             waitUntil(8000) { sendEnabled(scenario) }

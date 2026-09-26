@@ -2,47 +2,39 @@ package com.example.dualsimsms.ui
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.dualsimsms.R
 import com.example.dualsimsms.data.ContactSuggestion
+import com.example.dualsimsms.databinding.ItemContactSuggestionBinding
 
 class ContactSuggestionAdapter(
     private val onClick: (ContactSuggestion) -> Unit
 ) : ListAdapter<ContactSuggestion, ContactSuggestionAdapter.ViewHolder>(DIFF) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val textView = TextView(parent.context).apply {
-            setPadding(
-                dp(16, parent), dp(12, parent), dp(16, parent), dp(12, parent)
-            )
-            textSize = 16f
-            isClickable = true
-            isFocusable = true
-            background = null
-        }
-        return ViewHolder(textView)
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
+        ViewHolder(
+            ItemContactSuggestionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
 
-    inner class ViewHolder(private val textView: TextView) :
-        RecyclerView.ViewHolder(textView) {
+    inner class ViewHolder(private val binding: ItemContactSuggestionBinding) :
+        RecyclerView.ViewHolder(binding.root) {
 
         fun bind(suggestion: ContactSuggestion) {
-            textView.text = textView.context.getString(
+            binding.name.text = suggestion.name
+            binding.number.text = suggestion.number
+            Avatars.bind(binding.avatar, suggestion.name, colorKey = suggestion.number)
+            binding.root.contentDescription = binding.root.context.getString(
                 R.string.contact_suggestion_format, suggestion.name, suggestion.number
             )
-            textView.setOnClickListener { onClick(suggestion) }
+            binding.root.setOnClickListener { onClick(suggestion) }
         }
     }
-
-    private fun dp(value: Int, parent: ViewGroup): Int =
-        (value * parent.resources.displayMetrics.density).toInt()
 
     private companion object {
         val DIFF = object : DiffUtil.ItemCallback<ContactSuggestion>() {

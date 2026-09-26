@@ -1,6 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="sim_badge_unknown">#FF757575</color>
-    <color name="unread_badge_background">#FF6750A4</color>
-    <color name="unread_badge_text">#FFFFFFFF</color>
+    <!-- Brand scheme (Material 3 tonal palette, seed #3D5BA9). Used on
+         devices without dynamic color; Android 12+ follows the wallpaper. -->
+    <color name="brand_primary">#FF3D5BA9</color>
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <color name="brand_primary_container">#FFDBE1FF</color>
+    <color name="brand_on_primary_container">#FF00174B</color>
+    <color name="brand_secondary">#FF595E72</color>
+    <color name="brand_on_secondary">#FFFFFFFF</color>
+    <color name="brand_secondary_container">#FFDDE1F9</color>
+    <color name="brand_on_secondary_container">#FF161B2C</color>
+    <color name="brand_tertiary">#FF745470</color>
+    <color name="brand_on_tertiary">#FFFFFFFF</color>
+    <color name="brand_tertiary_container">#FFFFD7F5</color>
+    <color name="brand_on_tertiary_container">#FF2C122A</color>
+    <color name="brand_error">#FFBA1A1A</color>
+    <color name="brand_on_error">#FFFFFFFF</color>
+    <color name="brand_error_container">#FFFFDAD6</color>
+    <color name="brand_on_error_container">#FF410002</color>
+    <color name="brand_surface">#FFFAF8FF</color>
+    <color name="brand_on_surface">#FF1A1B21</color>
+    <color name="brand_surface_variant">#FFE2E2EC</color>
+    <color name="brand_on_surface_variant">#FF45464F</color>
+    <color name="brand_outline">#FF767680</color>
+    <color name="brand_outline_variant">#FFC6C6D0</color>
+    <color name="brand_surface_container_lowest">#FFFFFFFF</color>
+    <color name="brand_surface_container_low">#FFF4F3FA</color>
+    <color name="brand_surface_container">#FFEEEDF4</color>
+    <color name="brand_surface_container_high">#FFE8E7EF</color>
+    <color name="brand_surface_container_highest">#FFE3E1E9</color>
+    <color name="brand_surface_dim">#FFDAD9E0</color>
+    <color name="brand_surface_bright">#FFFAF8FF</color>
+    <color name="brand_inverse_surface">#FF2F3036</color>
+    <color name="brand_inverse_on_surface">#FFF1F0F7</color>
+    <color name="brand_inverse_primary">#FFB4C5FF</color>
+
+    <!-- Contact avatar tones: container / on-container pairs. -->
+    <color name="avatar_bg_1">#FFD6E3FF</color>
+    <color name="avatar_fg_1">#FF001B3E</color>
+    <color name="avatar_bg_2">#FFC4EED0</color>
+    <color name="avatar_fg_2">#FF00210E</color>
+    <color name="avatar_bg_3">#FFFFDAD6</color>
+    <color name="avatar_fg_3">#FF410002</color>
+    <color name="avatar_bg_4">#FFF2DAFF</color>
+    <color name="avatar_fg_4">#FF2B0052</color>
+    <color name="avatar_bg_5">#FFFFDCC2</color>
+    <color name="avatar_fg_5">#FF2E1500</color>
+    <color name="avatar_bg_6">#FFBEEBEC</color>
+    <color name="avatar_fg_6">#FF002021</color>
+
+    <color name="launcher_background">#FF3D5BA9</color>
 </resources>

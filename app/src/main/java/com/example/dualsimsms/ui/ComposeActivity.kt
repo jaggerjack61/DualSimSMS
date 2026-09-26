@@ -57,14 +57,22 @@ class ComposeActivity : AppCompatActivity() {
             selectedSuggestion = suggestion
             binding.recipientInput.setText(suggestion.name)
             binding.recipientInput.setSelection(suggestion.name.length)
-            binding.recipientInput.error = null
-            binding.suggestions.isVisible = false
+            binding.recipientLayout.error = null
+            showSuggestions(false)
+            binding.bodyInput.requestFocus()
         }
         binding.suggestions.layoutManager = LinearLayoutManager(this)
         binding.suggestions.adapter = suggestionAdapter
 
         intent.getStringExtra(SmsExtras.EXTRA_NUMBER)?.let { number ->
             binding.recipientInput.setText(number)
+        }
+        showSuggestions(false)
+        updateCounts()
+        if (binding.recipientInput.text.isNullOrBlank()) {
+            binding.recipientInput.requestFocus()
+        } else {
+            binding.bodyInput.requestFocus()
         }
 
         binding.recipientInput.addTextChangedListener(recipientWatcher)
@@ -82,20 +90,22 @@ class ComposeActivity : AppCompatActivity() {
         binding.sendButton.setOnClickListener {
             val recipient = recipient()
             if (selectedSuggestion == null && !looksLikePhoneNumber(recipient)) {
-                binding.recipientInput.error = getString(R.string.recipient_invalid)
+                binding.recipientLayout.error = getString(R.string.recipient_invalid)
+                binding.recipientInput.requestFocus()
                 return@setOnClickListener
             }
-            binding.recipientInput.error = null
+            binding.recipientLayout.error = null
             viewModel.send(recipient, binding.bodyInput.text.toString())
         }
 
         lifecycleScope.launch {
             viewModel.state.collect { state ->
                 renderSimChips(state.subscriptions)
-                binding.sendButton.isEnabled = !state.sending &&
-                    state.selectedSubId != null
+                updateSendEnabled()
                 state.message?.let { message ->
-                    Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG)
+                        .setAnchorView(binding.composeBar)
+                        .show()
                     viewModel.consumeMessage()
                 }
             }
@@ -127,7 +137,7 @@ class ComposeActivity : AppCompatActivity() {
         override fun afterTextChanged(s: android.text.Editable?) {
             val query = s?.toString().orEmpty()
             if (selectedSuggestion?.name != query) selectedSuggestion = null
-            binding.recipientInput.error = null
+            binding.recipientLayout.error = null
             viewModel.onTextChanged(
                 recipient(),
                 binding.bodyInput.text?.toString().orEmpty()
@@ -135,14 +145,14 @@ class ComposeActivity : AppCompatActivity() {
             updateCounts()
             suggestionJob?.cancel()
             if (selectedSuggestion != null) {
-                binding.suggestions.isVisible = false
+                showSuggestions(false)
                 return
             }
             val hasPermission = ContextCompat.checkSelfPermission(
                 this@ComposeActivity, Manifest.permission.READ_CONTACTS
             ) == PackageManager.PERMISSION_GRANTED
             if (!hasPermission || query.isBlank()) {
-                binding.suggestions.isVisible = false
+                showSuggestions(false)
                 return
             }
             suggestionJob = lifecycleScope.launch {
@@ -151,25 +161,37 @@ class ComposeActivity : AppCompatActivity() {
                     com.example.dualsimsms.SmsAppContainer.suggest(this@ComposeActivity, query)
                 }
                 if (query != recipient()) return@launch
-                if (suggestions.isEmpty()) {
-                    binding.suggestions.isVisible = false
-                } else {
-                    suggestionAdapter.submitList(suggestions)
-                    binding.suggestions.isVisible = true
-                }
+                suggestionAdapter.submitList(suggestions)
+                showSuggestions(suggestions.isNotEmpty())
             }
         }
+    }
+
+    private fun showSuggestions(show: Boolean) {
+        binding.suggestions.isVisible = show
+        binding.suggestionsHint.isVisible = !show && selectedSuggestion == null &&
+            binding.recipientInput.text.isNullOrBlank()
     }
 
     private fun renderSimChips(subscriptions: List<SimProfile>) {
         binding.simChipGroup.removeAllViews()
         val settings = viewModel.state.value.settings
+        if (subscriptions.isEmpty()) {
+            binding.simChipGroup.addView(Chip(this).apply {
+                text = getString(R.string.no_sim)
+                isEnabled = false
+            })
+            return
+        }
         subscriptions.forEach { sub ->
             val label = settings.sims[sub.subscriptionId]?.customName
                 ?: com.example.dualsimsms.util.SimDefaults.defaultName(sub.slotIndex)
             val chip = Chip(this).apply {
                 text = label
                 isCheckable = true
+                chipIcon = ContextCompat.getDrawable(context, R.drawable.dot)?.mutate()?.also {
+                    it.setTint(viewModel.colorFor(sub.subscriptionId))
+                }
                 setOnClickListener {
                     viewModel.selectSub(sub.subscriptionId)
                 }
@@ -186,7 +208,16 @@ class ComposeActivity : AppCompatActivity() {
         val segments = runCatching {
             SmsManager.getDefault().divideMessage(body).size
         }.getOrDefault(if (body.isEmpty()) 0 else 1)
-        binding.countLabel.text = getString(R.string.character_count, body.length, segments)
+        binding.countLabel.text =
+            resources.getQuantityString(R.plurals.character_count, body.length, body.length, segments)
+        binding.countLabel.isVisible = body.isNotEmpty()
+        updateSendEnabled()
+    }
+
+    private fun updateSendEnabled() {
+        val state = viewModel.state.value
+        binding.sendButton.isEnabled = !state.sending && state.selectedSubId != null &&
+            !binding.bodyInput.text.isNullOrBlank()
     }
 
     private fun applyInsets() {
@@ -197,9 +228,12 @@ class ComposeActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
+        // Lift the send bar above both the navigation bar and the keyboard.
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(0, 0, 0, systemBars.bottom)
+            val bottom = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
+            ).bottom
+            v.setPadding(0, 0, 0, bottom)
             insets
         }
     }

@@ -1,9 +1,8 @@
 package com.example.dualsimsms.ui
 
-import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -11,8 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.dualsimsms.R
 import com.example.dualsimsms.databinding.ItemConversationBinding
 import com.example.dualsimsms.model.Conversation
-import com.example.dualsimsms.util.SimDefaults
 import com.example.dualsimsms.util.TimeFormatter
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.R as MaterialR
 
 class ConversationAdapter(
     private val colorResolver: (Int?) -> Int,
@@ -41,63 +41,53 @@ class ConversationAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(conversation: Conversation) {
+            val context = binding.root.context
             val name = conversation.contactName ?: conversation.address
             binding.name.text = name
-            binding.time.text = TimeFormatter.relative(conversation.date)
+            binding.time.text = TimeFormatter.listTimestamp(context, conversation.date)
             binding.snippet.text = conversation.snippet
+            Avatars.bind(binding.avatar, name, colorKey = conversation.address)
 
-            binding.avatar.text = name.firstOrNull()?.uppercase() ?: "#"
-            binding.avatar.background = avatarBackground(name)
-
-            if (conversation.unreadCount > 0) {
-                binding.unreadBadge.isVisible = true
-                binding.unreadBadge.text = binding.root.context.getString(
-                    R.string.unread_count, conversation.unreadCount
-                )
-                binding.unreadBadge.setTextColor(
-                    ContextCompat.getColor(binding.root.context, R.color.unread_badge_text)
-                )
-                binding.unreadBadge.background = rounded(
-                    ContextCompat.getColor(binding.root.context, R.color.unread_badge_background)
-                )
-                binding.name.setTypeface(null, android.graphics.Typeface.BOLD)
-                binding.snippet.setTypeface(null, android.graphics.Typeface.BOLD)
-            } else {
-                binding.unreadBadge.isVisible = false
-                binding.name.setTypeface(null, android.graphics.Typeface.NORMAL)
-                binding.snippet.setTypeface(null, android.graphics.Typeface.NORMAL)
+            val unread = conversation.unreadCount > 0
+            binding.unreadBadge.isVisible = unread
+            if (unread) {
+                binding.unreadBadge.text = if (conversation.unreadCount > 99) {
+                    context.getString(R.string.unread_badge_overflow)
+                } else {
+                    conversation.unreadCount.toString()
+                }
+                binding.unreadBadge.contentDescription =
+                    context.getString(R.string.unread_count, conversation.unreadCount)
             }
+            val emphasis = if (unread) Typeface.BOLD else Typeface.NORMAL
+            binding.name.setTypeface(Typeface.create(binding.name.typeface, emphasis))
+            binding.snippet.setTypeface(Typeface.create(binding.snippet.typeface, emphasis))
+            binding.time.setTypeface(Typeface.create(binding.time.typeface, emphasis))
+            binding.snippet.setTextColor(
+                MaterialColors.getColor(
+                    binding.snippet,
+                    if (unread) MaterialR.attr.colorOnSurface else MaterialR.attr.colorOnSurfaceVariant
+                )
+            )
+            binding.time.setTextColor(
+                MaterialColors.getColor(
+                    binding.time,
+                    if (unread) MaterialR.attr.colorPrimary else MaterialR.attr.colorOnSurfaceVariant
+                )
+            )
 
-            val showBadge = showSimBadgeResolver()
             val subId = conversation.subId
             val label = simLabelResolver(subId)
-            binding.simBadge.isVisible = showBadge && subId != null && label != null
+            binding.simBadge.isVisible = showSimBadgeResolver() && subId != null && label != null
             if (binding.simBadge.isVisible) {
                 binding.simBadge.text = label
-                binding.simBadge.setTextColor(ContextCompat.getColor(binding.root.context, android.R.color.white))
-                binding.simBadge.background = rounded(colorResolver(subId))
+                binding.simBadge.setSimDot(colorResolver(subId))
                 binding.simBadge.contentDescription =
-                    binding.root.context.getString(R.string.content_description_sim_badge, label)
+                    context.getString(R.string.content_description_sim_badge, label)
             }
 
             binding.root.setOnClickListener { onClick(conversation) }
         }
-
-        private fun avatarBackground(name: String): GradientDrawable {
-            val palette = SimDefaults.PALETTE
-            val color = palette[Math.abs(name.hashCode()) % palette.size]
-            return GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(color)
-            }
-        }
-
-        private fun rounded(color: Int): GradientDrawable =
-            GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 16 * binding.root.resources.displayMetrics.density
-                setColor(color)
-            }
     }
 
     private companion object {

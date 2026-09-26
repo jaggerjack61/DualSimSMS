@@ -59,6 +59,8 @@ object SmsNotificationHelper {
             .setContentTitle(senderName)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setColor(ContextCompat.getColor(context, R.color.brand_primary))
             .setAutoCancel(true)
             .setContentIntent(contentIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

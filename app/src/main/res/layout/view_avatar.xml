@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Circular contact avatar: an initial, or a person glyph for bare numbers.
+     Size is set by the including layout. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:importantForAccessibility="noHideDescendants">
+
+    <TextView
+        android:id="@+id/avatarInitial"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        tools:text="A" />
+
+    <ImageView
+        android:id="@+id/avatarIcon"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:padding="11dp"
+        android:src="@drawable/ic_person"
+        android:visibility="gone" />
+</FrameLayout>

@@ -8,6 +8,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.dualsimsms.R
 import com.example.dualsimsms.data.Folder
 import com.example.dualsimsms.databinding.FragmentMessagesBinding
@@ -48,6 +49,11 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
         )
         binding.recycler.layoutManager = LinearLayoutManager(requireContext())
         binding.recycler.adapter = adapter
+        binding.recycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                mainActivity.onConversationListScrolled(dy, recyclerView.canScrollVertically(-1))
+            }
+        })
         binding.errorAction.setOnClickListener { mainActivity.requestSmsPermissions() }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -75,10 +81,13 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
         binding.emptyView.isVisible = state is UiState.Empty
         binding.errorView.isVisible = state is UiState.Error
         if (state is UiState.Empty) {
-            binding.emptyText.setText(
-                if (subId == null) emptyTextFor(mainActivity.mainViewModel.selectedFolder.value)
-                else R.string.empty_sim_filter
+            val folder = mainActivity.mainViewModel.selectedFolder.value
+            val empty = if (subId == null) emptyStateFor(folder) else EmptyState(
+                R.drawable.ic_sim_card, R.string.empty_sim_filter_title, R.string.empty_sim_filter
             )
+            binding.emptyIcon.setImageResource(empty.icon)
+            binding.emptyTitle.setText(empty.title)
+            binding.emptyText.setText(empty.body)
         }
         if (state is UiState.Success) {
             adapter.submitList(state.data)
@@ -89,10 +98,12 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
         }
     }
 
-    private fun emptyTextFor(folder: Folder): Int = when (folder) {
-        Folder.INBOX -> R.string.empty_inbox
-        Folder.SENT -> R.string.empty_sent
-        Folder.DRAFTS -> R.string.empty_drafts
+    private class EmptyState(val icon: Int, val title: Int, val body: Int)
+
+    private fun emptyStateFor(folder: Folder): EmptyState = when (folder) {
+        Folder.INBOX -> EmptyState(R.drawable.ic_inbox, R.string.empty_inbox_title, R.string.empty_inbox)
+        Folder.SENT -> EmptyState(R.drawable.ic_send, R.string.empty_sent_title, R.string.empty_sent)
+        Folder.DRAFTS -> EmptyState(R.drawable.ic_drafts, R.string.empty_drafts_title, R.string.empty_drafts)
     }
 
     private fun openConversation(conversation: Conversation) {

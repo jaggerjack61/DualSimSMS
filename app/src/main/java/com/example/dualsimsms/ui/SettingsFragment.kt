@@ -11,6 +11,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.RippleDrawable
+import androidx.core.graphics.ColorUtils
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
+import androidx.core.widget.ImageViewCompat
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.R as MaterialR
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -71,6 +82,17 @@ class SettingsFragment : Fragment() {
         }
         binding.notificationButton.setOnClickListener { openOrRequestNotifications() }
         renderNotificationState()
+
+        // Keep the last card and a focused name field clear of the
+        // navigation bar and keyboard.
+        val baseBottom = binding.scroll.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.scroll) { v, insets ->
+            val bottom = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
+            ).bottom
+            v.updatePadding(bottom = baseBottom + bottom)
+            insets
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             mainViewModel.isDefaultSmsHandler.collect(::renderDefaultSmsState)
@@ -196,7 +218,13 @@ private class SimSettingsAdapter(
             val context = binding.root.context
             subId = item.sub.subscriptionId
 
-            binding.simTitle.text = SimDefaults.defaultName(item.sub.slotIndex)
+            val simColor = item.colorArgb ?: SimDefaults.defaultColor(item.sub.slotIndex)
+            binding.simTitle.text = item.customName ?: SimDefaults.defaultName(item.sub.slotIndex)
+            binding.simIcon.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(ColorUtils.setAlphaComponent(simColor, 0x33))
+            }
+            ImageViewCompat.setImageTintList(binding.simIcon, ColorStateList.valueOf(simColor))
             binding.slotInfo.text = context.getString(
                 R.string.settings_slot_info,
                 item.sub.slotIndex + 1,
@@ -228,8 +256,8 @@ private class SimSettingsAdapter(
                 }
             }
 
-            binding.resetButton.isEnabled = item.customName != null
-            binding.resetButton.setOnClickListener {
+            binding.nameInput.isEndIconVisible = item.customName != null
+            binding.nameInput.setEndIconOnClickListener {
                 // Do not let the focus-loss listener persist the old value
                 // after Reset has cleared it.
                 binding.nameField.setOnFocusChangeListener(null)
@@ -240,9 +268,7 @@ private class SimSettingsAdapter(
                 viewModel.resetSimName(subId)
             }
 
-            renderPalette(
-                item.colorArgb ?: SimDefaults.defaultColor(item.sub.slotIndex)
-            )
+            renderPalette(simColor)
         }
 
         private val nameWatcher = object : android.text.TextWatcher {
@@ -253,7 +279,7 @@ private class SimSettingsAdapter(
                 // updates the adapter and can disturb the editor selection.
                 // The value is committed on focus loss, IME Done, navigation,
                 // or when this holder is recycled.
-                binding.resetButton.isEnabled =
+                binding.nameInput.isEndIconVisible =
                     SimDefaults.normalizeName(s?.toString()) != null
             }
         }
@@ -279,30 +305,28 @@ private class SimSettingsAdapter(
             val context = binding.root.context
             val colorNames = context.resources.getStringArray(R.array.settings_color_names)
             val dp = binding.root.resources.displayMetrics.density
+            val ring = MaterialColors.getColor(binding.root, MaterialR.attr.colorOnSurface)
             SimDefaults.PALETTE.forEachIndexed { index, color ->
                 val selected = color == selectedColor
                 val colorName = colorNames.getOrElse(index) {
                     String.format("#%06X", 0xFFFFFF and color)
                 }
-                val circle = ImageButton(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        (48 * dp).toInt(), (48 * dp).toInt()
-                    ).apply {
-                        marginEnd = (8 * dp).toInt()
-                    }
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        shape = android.graphics.drawable.GradientDrawable.OVAL
-                        setColor(color)
-                        val border = if (selected) {
-                            com.google.android.material.color.MaterialColors.getColor(
-                                binding.root, com.google.android.material.R.attr.colorPrimary
-                            )
+                val swatch = ImageButton(context).apply {
+                    // 48dp touch target around a 36dp swatch; the selected one
+                    // gains an outer ring and a check mark.
+                    layoutParams = LinearLayout.LayoutParams((48 * dp).toInt(), (48 * dp).toInt())
+                    background = swatchDrawable(color, selected, ring, dp)
+                    scaleType = android.widget.ImageView.ScaleType.CENTER
+                    if (selected) {
+                        setImageResource(R.drawable.ic_check)
+                        val onSwatch = if (ColorUtils.calculateLuminance(color) > 0.5) {
+                            android.graphics.Color.BLACK
                         } else {
-                            com.google.android.material.color.MaterialColors.getColor(
-                                binding.root, com.google.android.material.R.attr.colorOutline
-                            )
+                            android.graphics.Color.WHITE
                         }
-                        setStroke(((if (selected) 4 else 1) * dp).toInt(), border)
+                        ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(onSwatch))
+                    } else {
+                        setImageDrawable(null)
                     }
                     isClickable = true
                     isFocusable = true
@@ -317,8 +341,31 @@ private class SimSettingsAdapter(
                         renderPalette(color)
                     }
                 }
-                binding.colorPalette.addView(circle)
+                binding.colorPalette.addView(swatch)
             }
+        }
+
+        private fun swatchDrawable(color: Int, selected: Boolean, ring: Int, dp: Float): android.graphics.drawable.Drawable {
+            val fill = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+            }
+            val layers = if (selected) {
+                val outer = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setStroke((2 * dp).toInt(), ring)
+                }
+                LayerDrawable(arrayOf(outer, fill)).apply {
+                    setLayerInset(0, (4 * dp).toInt(), (4 * dp).toInt(), (4 * dp).toInt(), (4 * dp).toInt())
+                    setLayerInset(1, (9 * dp).toInt(), (9 * dp).toInt(), (9 * dp).toInt(), (9 * dp).toInt())
+                }
+            } else {
+                LayerDrawable(arrayOf(fill)).apply {
+                    setLayerInset(0, (6 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt())
+                }
+            }
+            val ripple = MaterialColors.getColor(binding.root, MaterialR.attr.colorControlHighlight)
+            return RippleDrawable(ColorStateList.valueOf(ripple), layers, null)
         }
     }
 

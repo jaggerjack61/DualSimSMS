@@ -1,9 +1,100 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+
     <style name="Base.Theme.DualSimSms" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorOnPrimary">@color/brand_on_primary</item>
+        <item name="colorPrimaryContainer">@color/brand_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/brand_on_primary_container</item>
+        <item name="colorSecondary">@color/brand_secondary</item>
+        <item name="colorOnSecondary">@color/brand_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/brand_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/brand_on_secondary_container</item>
+        <item name="colorTertiary">@color/brand_tertiary</item>
+        <item name="colorOnTertiary">@color/brand_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/brand_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/brand_on_tertiary_container</item>
+        <item name="colorError">@color/brand_error</item>
+        <item name="colorOnError">@color/brand_on_error</item>
+        <item name="colorErrorContainer">@color/brand_error_container</item>
+        <item name="colorOnErrorContainer">@color/brand_on_error_container</item>
+        <item name="android:colorBackground">@color/brand_surface</item>
+        <item name="colorOnBackground">@color/brand_on_surface</item>
+        <item name="colorSurface">@color/brand_surface</item>
+        <item name="colorOnSurface">@color/brand_on_surface</item>
+        <item name="colorSurfaceVariant">@color/brand_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/brand_on_surface_variant</item>
+        <item name="colorOutline">@color/brand_outline</item>
+        <item name="colorOutlineVariant">@color/brand_outline_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/brand_surface_container_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/brand_surface_container_low</item>
+        <item name="colorSurfaceContainer">@color/brand_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/brand_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/brand_surface_container_highest</item>
+        <item name="colorSurfaceDim">@color/brand_surface_dim</item>
+        <item name="colorSurfaceBright">@color/brand_surface_bright</item>
+        <item name="colorSurfaceInverse">@color/brand_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/brand_inverse_on_surface</item>
+        <item name="colorPrimaryInverse">@color/brand_inverse_primary</item>
+
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="q">false</item>
+
+        <item name="toolbarStyle">@style/Widget.DualSimSms.Toolbar</item>
+        <item name="appBarLayoutStyle">@style/Widget.DualSimSms.AppBarLayout</item>
+        <item name="materialCardViewStyle">@style/Widget.DualSimSms.Card</item>
+        <item name="chipStyle">@style/Widget.DualSimSms.Chip</item>
     </style>
 
     <style name="Theme.DualSimSms" parent="Base.Theme.DualSimSms" />
+
+    <style name="Widget.DualSimSms.AppBarLayout" parent="Widget.Material3.AppBarLayout">
+        <item name="android:background">?attr/colorSurface</item>
+    </style>
+
+    <style name="Widget.DualSimSms.Toolbar" parent="Widget.Material3.Toolbar.Surface">
+        <item name="titleTextAppearance">@style/TextAppearance.DualSimSms.ToolbarTitle</item>
+        <item name="subtitleTextAppearance">@style/TextAppearance.Material3.BodyMedium</item>
+        <item name="subtitleTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
+    <style name="TextAppearance.DualSimSms.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Widget.DualSimSms.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainerLow</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+    </style>
+
+    <style name="Widget.DualSimSms.Chip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipIconSize">10dp</item>
+        <item name="chipIconVisible">true</item>
+        <item name="iconStartPadding">6dp</item>
+        <item name="chipIconTint">@null</item>
+    </style>
+
+    <style name="Widget.DualSimSms.TabLayout" parent="Widget.Material3.TabLayout">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="tabIndicator">@drawable/tab_indicator_pill</item>
+        <item name="tabIndicatorGravity">stretch</item>
+        <item name="tabIndicatorFullWidth">true</item>
+        <item name="tabIndicatorColor">?attr/colorSecondaryContainer</item>
+        <item name="tabIndicatorAnimationMode">elastic</item>
+        <item name="tabSelectedTextColor">?attr/colorOnSecondaryContainer</item>
+        <item name="tabTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="tabTextAppearance">@style/TextAppearance.Material3.LabelLarge</item>
+        <item name="tabInlineLabel">true</item>
+        <item name="tabIconTint">@null</item>
+        <item name="tabRippleColor">@android:color/transparent</item>
+        <item name="tabPaddingStart">12dp</item>
+        <item name="tabPaddingEnd">12dp</item>
+        <item name="tabMinWidth">0dp</item>
+    </style>
+
+    <!-- Small uppercase-free section header, e.g. "SIM cards" in settings. -->
+    <style name="TextAppearance.DualSimSms.SectionHeader" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
 </resources>

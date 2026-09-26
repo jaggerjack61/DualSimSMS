@@ -148,7 +148,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             subs.forEach { sub ->
                 val custom = settings.sims[sub.subscriptionId]
                 val label = custom?.customName ?: SimDefaults.defaultName(sub.slotIndex)
-                add(TabModel(sub.subscriptionId, label))
+                val color = custom?.colorArgb ?: SimDefaults.defaultColor(sub.slotIndex)
+                add(TabModel(sub.subscriptionId, label, color))
             }
         }
         _tabs.value = tabs
