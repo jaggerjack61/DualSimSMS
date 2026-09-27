@@ -14,6 +14,7 @@ import com.example.dualsimsms.data.Folder
 import com.example.dualsimsms.databinding.FragmentMessagesBinding
 import com.example.dualsimsms.model.Conversation
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
@@ -27,6 +28,12 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var adapter: ConversationAdapter
+
+    /** Identity of the newest row shown; a change means a new message landed. */
+    private var topRow: Any? = null
+
+    /** Set when the folder or search changed, so its first list opens at the top. */
+    private var scrollToTopOnNextList = false
 
     private val mainActivity: MainActivity
         get() = requireActivity() as MainActivity
@@ -62,6 +69,16 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
+            // A different folder or search is a different screen: start at the top.
+            combine(
+                mainActivity.mainViewModel.selectedFolder,
+                mainActivity.mainViewModel.searchQuery
+            ) { folder, query -> folder to query.trim() }.drop(1).collect {
+                scrollToTopOnNextList = true
+                scrollToTop()
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
             combine(
                 mainActivity.mainViewModel.settings,
                 mainActivity.mainViewModel.subscriptions
@@ -69,6 +86,16 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
                 adapter.refreshSimPresentation()
             }
         }
+    }
+
+    /**
+     * Pager pages resume when they become the visible SIM, and every page
+     * resumes when returning from a conversation or Settings. Always open on
+     * the newest conversation.
+     */
+    override fun onResume() {
+        super.onResume()
+        scrollToTop()
     }
 
     override fun onDestroyView() {
@@ -80,22 +107,44 @@ class SimMessagesFragment(private val subId: Int?) : Fragment() {
         binding.recycler.isVisible = state is UiState.Success
         binding.emptyView.isVisible = state is UiState.Empty
         binding.errorView.isVisible = state is UiState.Error
+        val query = mainActivity.mainViewModel.searchQuery.value.trim()
         if (state is UiState.Empty) {
-            val folder = mainActivity.mainViewModel.selectedFolder.value
-            val empty = if (subId == null) emptyStateFor(folder) else EmptyState(
-                R.drawable.ic_sim_card, R.string.empty_sim_filter_title, R.string.empty_sim_filter
-            )
-            binding.emptyIcon.setImageResource(empty.icon)
-            binding.emptyTitle.setText(empty.title)
-            binding.emptyText.setText(empty.body)
+            if (query.isNotEmpty()) {
+                binding.emptyIcon.setImageResource(R.drawable.ic_search)
+                binding.emptyTitle.setText(R.string.empty_search_title)
+                binding.emptyText.text = getString(R.string.empty_search, query)
+            } else {
+                val folder = mainActivity.mainViewModel.selectedFolder.value
+                val empty = if (subId == null) emptyStateFor(folder) else EmptyState(
+                    R.drawable.ic_sim_card, R.string.empty_sim_filter_title, R.string.empty_sim_filter
+                )
+                binding.emptyIcon.setImageResource(empty.icon)
+                binding.emptyTitle.setText(empty.title)
+                binding.emptyText.setText(empty.body)
+            }
         }
+        adapter.query = query
         if (state is UiState.Success) {
-            adapter.submitList(state.data)
+            val top = state.data.first().let { Triple(it.threadId, it.address, it.date) }
+            // A new message moves its conversation to the top; follow it there
+            // even when reading further down the list.
+            val jump = scrollToTopOnNextList || top != topRow
+            topRow = top
+            scrollToTopOnNextList = false
+            adapter.submitList(state.data) { if (jump) scrollToTop() }
         } else {
+            topRow = null
             // Do not keep the previous folder's adapter data behind an empty
             // or error view; it can flash briefly on the next folder switch.
             adapter.submitList(emptyList())
         }
+    }
+
+    private fun scrollToTop() {
+        val recycler = _binding?.recycler ?: return
+        recycler.stopScroll()
+        recycler.scrollToPosition(0)
+        mainActivity.onConversationListScrolled(0, canScrollUp = false)
     }
 
     private class EmptyState(val icon: Int, val title: Int, val body: Int)

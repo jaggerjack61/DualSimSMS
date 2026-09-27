@@ -19,6 +19,12 @@
     <!-- Tabs -->
     <string name="tab_all_sims">All SIMs</string>
 
+    <!-- Search -->
+    <string name="search">Search</string>
+    <string name="search_hint">Search messages</string>
+    <string name="empty_search_title">No results</string>
+    <string name="empty_search">Nothing here matches “%1$s”.</string>
+
     <!-- Folder states -->
     <string name="empty_inbox_title">No conversations yet</string>
     <string name="empty_inbox">Messages you receive will show up here.</string>

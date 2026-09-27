@@ -3,12 +3,15 @@ package com.example.dualsimsms.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -44,6 +47,8 @@ class MainActivity : AppCompatActivity() {
 
     private var settingsFragment: SettingsFragment? = null
 
+    private var searchItem: MenuItem? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -51,6 +56,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
+        // The toolbar's own back handling would close search even while the
+        // keyboard is up; the dispatcher callback below handles it instead.
+        binding.toolbar.isBackInvokedCallbackEnabled = false
 
         binding.pager.adapter = SimPagerAdapter(this)
         binding.pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -107,6 +115,13 @@ class MainActivity : AppCompatActivity() {
                 when {
                     binding.drawerLayout.isDrawerOpen(GravityCompat.START) ->
                         binding.drawerLayout.closeDrawer(GravityCompat.START)
+                    searchItem?.isActionViewExpanded == true -> {
+                        // First back hides the keyboard to browse results; the next closes search.
+                        val searchView = searchItem?.actionView as SearchView
+                        val imeVisible = ViewCompat.getRootWindowInsets(searchView)
+                            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                        if (imeVisible) searchView.clearFocus() else searchItem?.collapseActionView()
+                    }
                     binding.settingsHost.isVisible -> showPager()
                     else -> {
                         isEnabled = false
@@ -136,6 +151,49 @@ class MainActivity : AppCompatActivity() {
         binding.toolbar.title = folderTitle(mainViewModel.selectedFolder.value)
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        val item = menu.findItem(R.id.actionSearch)
+        searchItem = item
+        val searchView = item.actionView as SearchView
+        searchView.queryHint = getString(R.string.search_hint)
+        searchView.maxWidth = Int.MAX_VALUE
+
+        // Restore a search that survived a configuration change.
+        val restored = mainViewModel.searchQuery.value
+        if (restored.isNotEmpty()) {
+            item.expandActionView()
+            searchView.setQuery(restored, false)
+            searchView.clearFocus()
+        }
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean {
+                searchView.clearFocus()
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String): Boolean {
+                mainViewModel.setSearchQuery(newText)
+                return true
+            }
+        })
+        item.setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
+            override fun onMenuItemActionExpand(item: MenuItem): Boolean = true
+
+            override fun onMenuItemActionCollapse(item: MenuItem): Boolean {
+                mainViewModel.setSearchQuery("")
+                return true
+            }
+        })
+        return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.actionSearch)?.isVisible = !binding.settingsHost.isVisible
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -146,6 +204,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         mainViewModel.refreshCapabilities()
         SmsNotificationHelper.ensureChannels(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Coming back to search results should not pop the keyboard up again.
+        (searchItem?.actionView as? SearchView)?.clearFocus()
     }
 
     /** Shrinks the compose button while reading down a list; restores it near the top or on scroll up. */
@@ -183,6 +247,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectFolder(folder: Folder) {
+        searchItem?.collapseActionView()
         showPager()
         mainViewModel.selectFolder(folder)
         binding.navView.setCheckedItem(folderMenuId(folder))
@@ -201,9 +266,11 @@ class MainActivity : AppCompatActivity() {
         binding.fabCompose.extend()
         binding.navView.setCheckedItem(folderMenuId(mainViewModel.selectedFolder.value))
         binding.toolbar.title = folderTitle(mainViewModel.selectedFolder.value)
+        invalidateOptionsMenu()
     }
 
     private fun showSettings() {
+        searchItem?.collapseActionView()
         binding.pager.isVisible = false
         binding.tabs.isVisible = false
         binding.fabCompose.isVisible = false
@@ -216,6 +283,7 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.settingsHost, settingsFragment!!)
             .commit()
+        invalidateOptionsMenu()
     }
 
     private fun folderMenuId(folder: Folder): Int = when (folder) {

@@ -15,6 +15,7 @@ import com.example.dualsimsms.data.SettingsRepository.AppSettings
 import com.example.dualsimsms.model.Conversation
 import com.example.dualsimsms.model.SimProfile
 import com.example.dualsimsms.util.ConversationGrouper
+import com.example.dualsimsms.util.ConversationSearch
 import com.example.dualsimsms.util.SimDefaults
 import com.example.dualsimsms.util.SimFilter
 import com.example.dualsimsms.util.SmsCapabilities
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -55,6 +57,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedFolder = MutableStateFlow(Folder.INBOX)
     val selectedFolder: StateFlow<Folder> = _selectedFolder
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
 
     private val _hasSmsPermissions = MutableStateFlow(false)
     val hasSmsPermissions: StateFlow<Boolean> = _hasSmsPermissions
@@ -97,10 +102,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _selectedFolder.value = folder
     }
 
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
     /**
-     * Conversations restricted to [subId] (null = all SIMs). Permission and
-     * folder are combined into one value so an emission from the previous
-     * folder can never be rendered under a newly selected drawer title.
+     * Conversations restricted to [subId] (null = all SIMs) and narrowed by
+     * the search query. Permission and folder are combined into one value so
+     * an emission from the previous folder can never be rendered under a
+     * newly selected drawer title. The query filters in memory, so typing
+     * does not re-read the SMS provider or contacts.
      */
     fun conversationsFor(subId: Int?): Flow<UiState<List<Conversation>>> =
         combine(_hasSmsPermissions, _selectedFolder) { permission, folder ->
@@ -109,21 +120,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (!hasPermission) {
                 flowOf(UiState.Error)
             } else {
-                smsRepo.messagesFor(folder).map { messages ->
+                val threads = smsRepo.messagesFor(folder).map { messages ->
                     val filtered = SimFilter.filter(messages, subId)
-                    val conversations = ConversationGrouper.group(filtered)
-                    if (conversations.isEmpty()) {
-                        UiState.Empty
-                    } else {
-                        val enriched = withContext(Dispatchers.IO) {
-                            conversations.map { conversation ->
-                                conversation.copy(
-                                    contactName = contactRepo.nameFor(conversation.address)
-                                )
-                            }
+                    val conversations = withContext(Dispatchers.IO) {
+                        ConversationGrouper.group(filtered).map { conversation ->
+                            conversation.copy(
+                                contactName = contactRepo.nameFor(conversation.address)
+                            )
                         }
-                        UiState.Success(enriched)
                     }
+                    conversations to filtered
+                }
+                combine(threads, _searchQuery.map(String::trim).distinctUntilChanged()) {
+                        (conversations, messages), query ->
+                    val results = ConversationSearch.filter(conversations, messages, query)
+                    if (results.isEmpty()) UiState.Empty else UiState.Success(results)
                 }
             }
         }

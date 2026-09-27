@@ -28,6 +28,11 @@ object ConversationGrouper {
         }.sortedByDescending { it.date }
     }
 
-    private fun keyOf(message: Message): String =
-        if (message.threadId > 0) "thread:${message.threadId}" else "address:${message.address}"
+    fun keyOf(message: Message): String = key(message.threadId, message.address)
+
+    /** The same key [group] used for the messages behind [conversation]. */
+    fun keyOf(conversation: Conversation): String = key(conversation.threadId, conversation.address)
+
+    private fun key(threadId: Long, address: String): String =
+        if (threadId > 0) "thread:$threadId" else "address:$address"
 }

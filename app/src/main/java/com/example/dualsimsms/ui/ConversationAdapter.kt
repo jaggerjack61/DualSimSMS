@@ -1,6 +1,10 @@
 package com.example.dualsimsms.ui
 
 import android.graphics.Typeface
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
@@ -32,6 +36,14 @@ class ConversationAdapter(
         holder.bind(getItem(position))
     }
 
+    /** Search text to highlight in names and snippets; blank for none. */
+    var query: String = ""
+        set(value) {
+            if (field == value) return
+            field = value
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+        }
+
     /** Rebind rows whose SIM labels/colors changed without changing messages. */
     fun refreshSimPresentation() {
         if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
@@ -43,9 +55,9 @@ class ConversationAdapter(
         fun bind(conversation: Conversation) {
             val context = binding.root.context
             val name = conversation.contactName ?: conversation.address
-            binding.name.text = name
+            binding.name.text = highlight(name)
             binding.time.text = TimeFormatter.listTimestamp(context, conversation.date)
-            binding.snippet.text = conversation.snippet
+            binding.snippet.text = highlight(snippetAroundMatch(conversation.snippet))
             Avatars.bind(binding.avatar, name, colorKey = conversation.address)
 
             val unread = conversation.unreadCount > 0
@@ -88,9 +100,37 @@ class ConversationAdapter(
 
             binding.root.setOnClickListener { onClick(conversation) }
         }
+
+        /** Keeps a match deep inside a long message on the single snippet line. */
+        private fun snippetAroundMatch(snippet: String): String {
+            val index = if (query.isBlank()) -1 else snippet.indexOf(query, ignoreCase = true)
+            if (index <= SNIPPET_LEAD) return snippet
+            // Start at a word boundary just before the match when there is one.
+            val from = index - SNIPPET_LEAD
+            val space = snippet.indexOf(' ', from)
+            val start = if (space in from until index) space + 1 else from
+            return "…" + snippet.substring(start)
+        }
+
+        private fun highlight(text: String): CharSequence {
+            if (query.isBlank()) return text
+            val spannable = SpannableString(text)
+            val color = MaterialColors.getColor(binding.root, MaterialR.attr.colorPrimary)
+            var index = text.indexOf(query, ignoreCase = true)
+            while (index >= 0) {
+                val end = index + query.length
+                spannable.setSpan(ForegroundColorSpan(color), index, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(StyleSpan(Typeface.BOLD), index, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                index = text.indexOf(query, end, ignoreCase = true)
+            }
+            return spannable
+        }
     }
 
     private companion object {
+        /** Characters of context kept before a search match in a snippet. */
+        const val SNIPPET_LEAD = 10
+
         val DIFF = object : DiffUtil.ItemCallback<Conversation>() {
             override fun areItemsTheSame(oldItem: Conversation, newItem: Conversation): Boolean =
                 oldItem.threadId == newItem.threadId && oldItem.address == newItem.address
